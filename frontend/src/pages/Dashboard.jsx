@@ -1,0 +1,252 @@
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../store/authStore';
+import { getAllProgress, getRoadmap, getMentorSessions } from '../services/supabase';
+import { BookOpen, CheckCircle, Calendar, ArrowRight, ClipboardList } from 'lucide-react';
+
+const STATUS_COLORS = {
+  pending: 'badge-gray',
+  in_progress: 'badge-orange',
+  completed: 'badge-green',
+};
+
+export default function Dashboard() {
+  const navigate = useNavigate();
+  const { user, profile } = useAuthStore();
+  const [completedLessons, setCompletedLessons] = useState(0);
+  const [roadmap, setRoadmap] = useState(null);
+  const [sessions, setSessions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  // First-visit detection — computed once on mount before localStorage flag is set
+  const [showOverlay] = useState(() => !localStorage.getItem('hasVisitedDashboard'));
+
+  // Mark visited immediately so next load is the "returning" experience
+  useEffect(() => {
+    localStorage.setItem('hasVisitedDashboard', 'true');
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const [progressRes, roadmapRes, sessionRes] = await Promise.all([
+          getAllProgress(user.id),
+          getRoadmap(user.id),
+          getMentorSessions(user.id),
+        ]);
+        setCompletedLessons((progressRes.data || []).filter(p => p.status === 'completed').length);
+        setRoadmap(roadmapRes.data || null);
+        setSessions((sessionRes.data || []).filter(s => new Date(s.start_time) >= new Date()));
+      } catch {
+        setError('Failed to load dashboard data.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [user]);
+
+  if (loading) {
+    return (
+      <div className="page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
+        <div style={{ color: 'var(--text-secondary)' }}>Loading dashboard...</div>
+      </div>
+    );
+  }
+
+  const roadmapSteps = roadmap?.roadmap_steps || [];
+  const nextSession  = sessions[0];
+
+  return (
+    <div className="page animate-fade-in" style={{ opacity: 1 }}>
+
+      {/* ── Welcome header — always visible ── */}
+      <div style={{ marginBottom: '32px' }}>
+        <h1 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '6px' }}>
+          Welcome{!showOverlay && ' back'}, <span className="text-gradient">{profile?.full_name || 'Learner'}</span> 👋
+        </h1>
+        <p style={{ color: 'var(--text-secondary)' }}>
+          {showOverlay
+            ? "Let's get you set up. Start with your Career Readiness Assessment."
+            : "Here's a snapshot of your learning progress."}
+        </p>
+      </div>
+
+      {error && (
+        <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '8px', padding: '12px 16px', marginBottom: '24px', color: '#f87171', fontSize: '0.875rem' }}>
+          {error}
+        </div>
+      )}
+
+      {/* ── Content area — blurred + overlaid on first visit ── */}
+      <div style={{ position: 'relative' }}>
+
+        {/* Dashboard content */}
+        <div style={{
+          filter:        showOverlay ? 'blur(4px)' : 'none',
+          opacity:       showOverlay ? 0.45 : 1,
+          pointerEvents: showOverlay ? 'none' : 'auto',
+          userSelect:    showOverlay ? 'none' : 'auto',
+          transition:    'filter 0.4s, opacity 0.4s',
+        }}>
+          {/* Stats row */}
+          <div className="grid-2" style={{ marginBottom: '40px' }}>
+            <div className="stat-card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(34,197,94,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4ade80' }}>
+                  <CheckCircle size={22} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '1.75rem', fontWeight: 700 }}>{completedLessons}</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Completed Lessons</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="stat-card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(139,92,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-violet)' }}>
+                  <Calendar size={22} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '1.75rem', fontWeight: 700 }}>{sessions.length}</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Upcoming Sessions</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '32px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+
+              {/* Curriculum Roadmap snippet */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                  <h2 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Curriculum Roadmap</h2>
+                  <Link to="/app/curriculum" style={{ color: 'var(--accent-electric)', fontSize: '0.85rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    View all <ArrowRight size={14} />
+                  </Link>
+                </div>
+                {roadmapSteps.length === 0 ? (
+                  <div className="glass-panel" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', opacity: 1, transform: 'none' }}>
+                    <p style={{ marginBottom: '8px' }}>No roadmap yet.</p>
+                    <Link to="/app/assessments" style={{ color: 'var(--accent-electric)', textDecoration: 'none', fontWeight: 600, fontSize: '0.875rem' }}>
+                      Take an assessment →
+                    </Link>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {roadmapSteps.slice(0, 3).map(step => (
+                      <div key={step.id} className="glass-panel" style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: 1, transform: 'none' }}>
+                        <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{step.title}</span>
+                        <span className={`badge ${STATUS_COLORS[step.status] || 'badge-gray'}`}>{step.status}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Upcoming session */}
+              <div>
+                <h2 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '16px' }}>Upcoming Session</h2>
+                {nextSession ? (
+                  <div className="glass-panel" style={{ padding: '20px', opacity: 1, transform: 'none' }}>
+                    <div style={{ fontWeight: 600, marginBottom: '6px' }}>
+                      with {nextSession.mentors?.profiles?.full_name || 'Mentor'}
+                    </div>
+                    <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                      {new Date(nextSession.start_time).toLocaleString()}
+                    </div>
+                    <span className="badge badge-blue" style={{ marginTop: '10px', display: 'inline-block' }}>{nextSession.status}</span>
+                  </div>
+                ) : (
+                  <div className="glass-panel" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', opacity: 1, transform: 'none' }}>
+                    <p style={{ marginBottom: '8px' }}>No upcoming sessions.</p>
+                    <Link to="/app/mentors" style={{ color: 'var(--accent-electric)', textDecoration: 'none', fontWeight: 600, fontSize: '0.875rem' }}>
+                      Book a mentor →
+                    </Link>
+                  </div>
+                )}
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        {/* ── First-visit overlay ── */}
+        {showOverlay && (
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 10,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            minHeight: '320px',
+          }}>
+            <div style={{
+              background: 'linear-gradient(145deg, #13172b, #1a1f36)',
+              border: '1px solid rgba(139,92,246,0.35)',
+              borderRadius: '20px',
+              padding: '40px 36px',
+              maxWidth: '460px',
+              width: '100%',
+              textAlign: 'center',
+              boxShadow: '0 24px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(139,92,246,0.1)',
+            }}>
+              {/* Icon */}
+              <div style={{
+                width: '56px', height: '56px', borderRadius: '14px', margin: '0 auto 20px',
+                background: 'linear-gradient(135deg, var(--accent-electric), var(--accent-violet))',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <ClipboardList size={26} color="#fff" />
+              </div>
+
+              <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '10px', color: '#fff' }}>
+                Start with your Assessment
+              </h2>
+              <p style={{ color: '#94a3b8', fontSize: '0.9rem', lineHeight: 1.7, marginBottom: '28px' }}>
+                Complete your <strong style={{ color: '#fff' }}>Career Readiness Assessment</strong> to get your personalised PM archetype match, skill gap analysis, and a custom learning roadmap built for you.
+              </p>
+
+              {/* Primary CTA */}
+              <button
+                className="btn-primary"
+                onClick={() => navigate('/app/assessments')}
+                style={{
+                  width: '100%', borderRadius: '10px', padding: '14px',
+                  fontSize: '0.95rem', fontWeight: 700, border: 'none',
+                  cursor: 'pointer', marginBottom: '12px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                }}
+              >
+                <ClipboardList size={18} />
+                Start Assessment
+              </button>
+
+              {/* Secondary — explore dashboard */}
+              <Link
+                to="/app/dashboard"
+                onClick={() => {/* overlay already hidden — flag was set on mount */}}
+                style={{
+                  display: 'block', color: 'var(--text-secondary)', textDecoration: 'none',
+                  fontSize: '0.85rem', padding: '8px',
+                  transition: 'color 0.2s',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}
+              >
+                Explore dashboard first →
+              </Link>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
