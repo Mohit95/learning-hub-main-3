@@ -76,18 +76,24 @@ def _score_dimension(dimension: str, answer1: str, answer2: str) -> dict:
 
 
 @router.post("/score")
-def score_readiness(body: ScoreRequest):
+async def score_readiness(body: ScoreRequest):
     # Group answers by dimension (in order: index 0 = Q1, index 1 = Q2 for each dim)
     dim_answers: dict[str, list[str]] = {}
     for item in body.answers:
         dim_answers.setdefault(item.dimension, []).append(item.answer)
 
-    dimensions = {}
-    for dim in WEIGHTS:
+    # Run all 5 Claude calls in parallel
+    async def score_dim(dim):
         answers_for_dim = dim_answers.get(dim, ["", ""])
         a1 = answers_for_dim[0] if len(answers_for_dim) > 0 else ""
         a2 = answers_for_dim[1] if len(answers_for_dim) > 1 else ""
-        dimensions[dim] = _score_dimension(dim, a1, a2)
+        result = await asyncio.get_event_loop().run_in_executor(
+            None, _score_dimension, dim, a1, a2
+        )
+        return dim, result
+
+    results = await asyncio.gather(*[score_dim(dim) for dim in WEIGHTS])
+    dimensions = {dim: result for dim, result in results}
 
     # Weighted overall score (scores are 1-4, normalize to 100)
     raw = sum(dimensions[d]["score"] * WEIGHTS[d] for d in WEIGHTS)
