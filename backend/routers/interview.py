@@ -29,30 +29,30 @@ class MessageRequest(BaseModel):
 
 # ── Helper ─────────────────────────────────────────────────────────────────────
 
-def _resolve_user_id(authorization: Optional[str], fallback_id: Optional[str]) -> str:
-    """Return real user ID from JWT if present, else fall back to provided ID (dev/bypass mode)."""
+def _resolve_user_id(authorization: Optional[str], fallback_id: Optional[str]) -> Optional[str]:
+    """Return real user ID from JWT if present. Returns None for demo/anonymous users."""
     if authorization and authorization.startswith("Bearer "):
         try:
-            from dependencies import get_user_supabase
             token = authorization.split(" ")[1]
             from supabase import create_client
             from config import settings
             client = create_client(settings.supabase_url, settings.supabase_anon_key)
-            client.postgrest.auth(token)
             user_response = client.auth.get_user(token)
-            if user_response.user:
+            if user_response.user and str(user_response.user.id) != MOCK_USER_ID:
                 return str(user_response.user.id)
         except Exception:
             pass
-    return fallback_id or MOCK_USER_ID
+    # Return None for demo user or missing auth — stored as NULL in DB
+    if fallback_id and fallback_id != MOCK_USER_ID:
+        return fallback_id
+    return None
 
-def _get_session_or_404(session_id: str, user_id: str) -> dict:
-    res = supabase_admin.table("interview_sessions") \
-        .select("*") \
-        .eq("id", session_id) \
-        .eq("user_id", user_id) \
-        .single() \
-        .execute()
+def _get_session_or_404(session_id: str, user_id: Optional[str]) -> dict:
+    query = supabase_admin.table("interview_sessions").select("*").eq("id", session_id)
+    # For authenticated users, scope to their user_id; demo sessions (NULL) are found by session_id only
+    if user_id:
+        query = query.eq("user_id", user_id)
+    res = query.single().execute()
     if not res.data:
         raise HTTPException(status_code=404, detail="Session not found.")
     return res.data
