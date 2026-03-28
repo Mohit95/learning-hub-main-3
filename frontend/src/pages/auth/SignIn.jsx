@@ -100,7 +100,7 @@ export default function SignIn() {
 
         <button
           type="button"
-          onClick={() => { setDemoUser(); navigate('/app/dashboard'); }}
+          onClick={() => { localStorage.removeItem('hasVisitedDashboard'); setDemoUser(); navigate('/app/dashboard'); }}
           style={{
             width: '100%', padding: '12px', borderRadius: '10px', fontSize: '0.95rem', fontWeight: 600,
             background: 'transparent', border: '1px solid var(--glass-border)',
