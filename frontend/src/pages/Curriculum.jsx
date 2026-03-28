@@ -37,7 +37,7 @@ const REWARD_CONFIG = {
     heading:    "Phase 1 Complete — You've earned your first resource!",
     body:       "Download your free copy of 'Inspired: How to Create Tech Products Customers Love' — a foundational PM book by Marty Cagan.",
     actionLabel: 'Download Free PDF →',
-    actionHref:  'https://www.pdfdrive.com/inspired-how-to-create-products-customers-love-e158848654.html',
+    actionHref:  'https://build.rethinksystems.in/',
     subtext:    'A gift for completing your foundations week.',
     closeLabel: 'Continue Learning →',
     closeNav:   null,
