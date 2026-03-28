@@ -97,11 +97,23 @@ export default function Index() {
         <div className="glass-panel" style={{ padding: '24px' }}>
           <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '20px' }}>Quick Resources</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {['STAR Framework Guide', 'Top 15 PM Questions', 'Resume Impact phrasing'].map((title, i) => (
-              <div key={i} style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}>
-                <div style={{ color: 'var(--accent-violet)' }}><FileText size={16} /></div>
-                <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>{title}</div>
-              </div>
+            {[
+              { title: 'STAR Framework Guide', url: 'https://www.themuse.com/advice/star-interview-method' },
+              { title: 'Top 15 PM Interview Questions', url: 'https://www.lennysnewsletter.com/p/how-to-get-a-product-manager-job' },
+              { title: 'Resume Impact Phrasing', url: 'https://www.ycombinator.com/library/FB-how-to-write-a-great-resume' },
+            ].map(({ title, url }) => (
+              <a
+                key={url}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ textDecoration: 'none', padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', transition: 'background 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+              >
+                <div style={{ color: 'var(--accent-violet)', flexShrink: 0 }}><FileText size={16} /></div>
+                <div style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text-primary)' }}>{title}</div>
+              </a>
             ))}
           </div>
         </div>
