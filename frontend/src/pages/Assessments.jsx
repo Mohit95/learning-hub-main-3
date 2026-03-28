@@ -37,10 +37,10 @@ export default function Assessments() {
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <span className="badge badge-gray" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               <Clock size={11} />
-              ~5 min
+              ~25 min
             </span>
             <span className="badge badge-blue">
-              5 questions
+              10 questions
             </span>
           </div>
         </div>

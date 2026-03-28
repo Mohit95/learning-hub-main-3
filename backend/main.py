@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import assessments, programs
 from routers import interview
+from routers import readiness
 
 app = FastAPI(title="LMS Mentorship Platform API")
 
@@ -45,3 +46,4 @@ def health_check():
 app.include_router(assessments.router)
 app.include_router(programs.router)
 app.include_router(interview.router)
+app.include_router(readiness.router)

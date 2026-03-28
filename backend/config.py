@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     supabase_anon_key: str = ""
     supabase_service_key: Optional[str] = None
     openai_api_key: str = ""
+    anthropic_api_key: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

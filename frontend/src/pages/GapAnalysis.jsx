@@ -11,6 +11,74 @@ import ResumeAnalysisBadge from '../components/gap-analysis/ResumeAnalysisBadge'
 import RoadmapCTA from '../components/gap-analysis/RoadmapCTA';
 import EmptyState from '../components/gap-analysis/EmptyState';
 
+const DIMENSION_LABELS = {
+  product_sense:       'Product Sense',
+  analytical_thinking: 'Analytical Thinking',
+  technical_fluency:   'Technical Fluency',
+  execution:           'Execution & Prioritization',
+  strategy:            'Strategy & Market Fit',
+};
+
+const ARCHETYPE_META = {
+  'Growth PM': {
+    icon: 'trending-up',
+    tagline: 'You thrive at the intersection of data and user growth.',
+    reason: 'Your strongest signals are in Product Sense and Analytical Thinking. Growth PMs excel at defining user problems and driving metric-based decisions.',
+  },
+  'Operations PM': {
+    icon: 'cpu',
+    tagline: 'You bridge execution and technical depth.',
+    reason: 'Your strongest signals are in Technical Fluency and Execution. Operations PMs excel at system reliability, stakeholder management, and shipping on time.',
+  },
+  'General PM': {
+    icon: 'compass',
+    tagline: 'You are a versatile PM who can adapt across domains.',
+    reason: 'You showed balanced competency across all 5 dimensions. General PMs are versatile across product strategy, execution, and analytics.',
+  },
+};
+
+function buildFromAssessment(ar) {
+  const dims = ar.dimensions;
+
+  // gap_profile — scale 1-4 score to 0-10, required = 8, sort by highest gap first
+  const gap_profile = Object.entries(dims)
+    .map(([dim, d]) => ({
+      skill: DIMENSION_LABELS[dim] || dim,
+      current: Math.round((d.score / 4) * 10 * 10) / 10,
+      required: 8,
+    }))
+    .sort((a, b) => (b.required - b.current) - (a.required - a.current));
+
+  // readiness — map 5 dims to 3 sub-score buckets
+  const readiness = {
+    overall: ar.overallScore,
+    sub_scores: {
+      strategic_thinking: Math.round(((dims.analytical_thinking.score + dims.strategy.score) / 8) * 100),
+      technical_proficiency: Math.round((dims.technical_fluency.score / 4) * 100),
+      execution_delivery: Math.round((dims.execution.score / 4) * 100),
+    },
+  };
+
+  // resume_skills — replace chips with single assessment badge
+  const resume_skills = {
+    match_percentage: ar.overallScore,
+    extracted: ['5 dimensions assessed'],
+  };
+
+  // archetypes — compute per-archetype scores from dimension pairs
+  const growthScore  = Math.round(((dims.product_sense.score + dims.analytical_thinking.score) / 8) * 100);
+  const opsScore     = Math.round(((dims.technical_fluency.score + dims.execution.score) / 8) * 100);
+  const generalScore = ar.overallScore;
+
+  const archetypes = [
+    { name: 'Growth PM',     score: growthScore,  ...ARCHETYPE_META['Growth PM'] },
+    { name: 'Operations PM', score: opsScore,      ...ARCHETYPE_META['Operations PM'] },
+    { name: 'General PM',    score: generalScore,  ...ARCHETYPE_META['General PM'] },
+  ];
+
+  return { readiness, gap_profile, resume_skills, archetypes };
+}
+
 export default function GapAnalysis() {
   const { user } = useAuthStore();
   const [result, setResult] = useState(null);
@@ -21,13 +89,22 @@ export default function GapAnalysis() {
   // Toggle this to false when backend is connected
   const USE_MOCK = true;
 
+  // Read assessment result from localStorage
+  const storedAssessment = (() => {
+    try { return JSON.parse(localStorage.getItem('assessmentResult')); } catch { return null; }
+  })();
+
   useEffect(() => {
     if (!user) return;
 
     const load = async () => {
       setLoading(true);
       try {
-        if (USE_MOCK) {
+        // If assessment data exists in localStorage, use it regardless of USE_MOCK
+        if (storedAssessment) {
+          setResult(buildFromAssessment(storedAssessment));
+          setHasRoadmap(false);
+        } else if (USE_MOCK) {
           setResult(MOCK_GAP_ANALYSIS);
           setHasRoadmap(false);
         } else {
