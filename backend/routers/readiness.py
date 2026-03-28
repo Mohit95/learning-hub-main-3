@@ -2,7 +2,7 @@ import io
 import json
 import asyncio
 import anthropic
-from fastapi import APIRouter, UploadFile, File, Form
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 from config import settings
@@ -173,22 +173,25 @@ def _build_result(dimensions: dict) -> dict:
 
 @router.post("/score")
 async def score_readiness(body: ScoreRequest):
-    dim_answers: dict[str, list[str]] = {}
-    for item in body.answers:
-        dim_answers.setdefault(item.dimension, []).append(item.answer)
+    try:
+        dim_answers: dict[str, list[str]] = {}
+        for item in body.answers:
+            dim_answers.setdefault(item.dimension, []).append(item.answer)
 
-    async def score_dim(dim):
-        answers_for_dim = dim_answers.get(dim, ["", ""])
-        a1 = answers_for_dim[0] if len(answers_for_dim) > 0 else ""
-        a2 = answers_for_dim[1] if len(answers_for_dim) > 1 else ""
-        result = await asyncio.get_event_loop().run_in_executor(
-            None, _score_dimension, dim, a1, a2
-        )
-        return dim, result
+        loop = asyncio.get_running_loop()
 
-    results = await asyncio.gather(*[score_dim(dim) for dim in WEIGHTS])
-    dimensions = {dim: result for dim, result in results}
-    return _build_result(dimensions)
+        async def score_dim(dim):
+            answers_for_dim = dim_answers.get(dim, ["", ""])
+            a1 = answers_for_dim[0] if len(answers_for_dim) > 0 else ""
+            a2 = answers_for_dim[1] if len(answers_for_dim) > 1 else ""
+            result = await loop.run_in_executor(None, _score_dimension, dim, a1, a2)
+            return dim, result
+
+        results = await asyncio.gather(*[score_dim(dim) for dim in WEIGHTS])
+        dimensions = {dim: result for dim, result in results}
+        return _build_result(dimensions)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/score-with-resume")
@@ -196,30 +199,32 @@ async def score_readiness_with_resume(
     answers: str = Form(...),
     resume: UploadFile = File(...),
 ):
-    answer_items = [AnswerItem(**a) for a in json.loads(answers)]
-    resume_text = await extract_resume_text(resume)
+    try:
+        answer_items = [AnswerItem(**a) for a in json.loads(answers)]
+        resume_text = await extract_resume_text(resume)
 
-    dim_answers: dict[str, list[str]] = {}
-    for item in answer_items:
-        dim_answers.setdefault(item.dimension, []).append(item.answer)
+        dim_answers: dict[str, list[str]] = {}
+        for item in answer_items:
+            dim_answers.setdefault(item.dimension, []).append(item.answer)
 
-    async def score_dim(dim):
-        answers_for_dim = dim_answers.get(dim, ["", ""])
-        a1 = answers_for_dim[0] if len(answers_for_dim) > 0 else ""
-        a2 = answers_for_dim[1] if len(answers_for_dim) > 1 else ""
-        # Use resume-aware scoring if we extracted text, otherwise fall back
-        if resume_text:
-            result = await asyncio.get_event_loop().run_in_executor(
-                None, _score_dimension_with_resume, dim, a1, a2, resume_text
-            )
-        else:
-            result = await asyncio.get_event_loop().run_in_executor(
-                None, _score_dimension, dim, a1, a2
-            )
-        return dim, result
+        loop = asyncio.get_running_loop()
 
-    results = await asyncio.gather(*[score_dim(dim) for dim in WEIGHTS])
-    dimensions = {dim: result for dim, result in results}
-    result = _build_result(dimensions)
-    result["resumeUsed"] = bool(resume_text)
-    return result
+        async def score_dim(dim):
+            answers_for_dim = dim_answers.get(dim, ["", ""])
+            a1 = answers_for_dim[0] if len(answers_for_dim) > 0 else ""
+            a2 = answers_for_dim[1] if len(answers_for_dim) > 1 else ""
+            if resume_text:
+                result = await loop.run_in_executor(
+                    None, _score_dimension_with_resume, dim, a1, a2, resume_text
+                )
+            else:
+                result = await loop.run_in_executor(None, _score_dimension, dim, a1, a2)
+            return dim, result
+
+        results = await asyncio.gather(*[score_dim(dim) for dim in WEIGHTS])
+        dimensions = {dim: result for dim, result in results}
+        result = _build_result(dimensions)
+        result["resumeUsed"] = bool(resume_text)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
