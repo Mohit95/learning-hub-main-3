@@ -29,6 +29,7 @@ import Questionnaire from './pages/ReadinessAssessment/Questionnaire';
 import ResumeUpload from './pages/ReadinessAssessment/ResumeUpload';
 import ReadinessScorecard from './pages/ReadinessAssessment/Scorecard';
 import Curriculum from './pages/Curriculum';
+import Schedule from './pages/Schedule';
 import AdminUsers from './pages/admin/AdminUsers';
 
 // ─── Landing Page Components ─────────────────────────────────────────────────
@@ -171,6 +172,7 @@ export default function App() {
             <Route path="gap-analysis" element={<GapAnalysis />} />
             <Route path="roadmap" element={<Roadmap />} />
             <Route path="curriculum" element={<Curriculum />} />
+            <Route path="schedule" element={<Schedule />} />
             <Route path="mentors" element={<MentorsEnhanced />} />
             <Route path="events" element={<EventsEnhanced />} />
             <Route path="blog" element={<BlogEnhanced />} />

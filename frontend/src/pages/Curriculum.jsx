@@ -299,9 +299,17 @@ export default function Curriculum() {
 
   const toggleModule = (id) => setOpenModuleId(prev => prev === id ? null : id);
 
-  const groupedModules = modules.reduce((acc, m) => {
-    const p = m.phase_number || 1;
-    (acc[p] = acc[p] || []).push(m);
+  // Group by phase → week → day
+  const groupedByPhase = modules.reduce((acc, m) => {
+    const phase = m.phase_number || 1;
+    if (!acc[phase]) acc[phase] = {};
+    (m.lessons || []).forEach(lesson => {
+      const week = lesson.week_number || m.order_index || 1;
+      const day  = lesson.day_number || lesson.order_index || 1;
+      if (!acc[phase][week]) acc[phase][week] = {};
+      if (!acc[phase][week][day]) acc[phase][week][day] = { lessons: [], moduleTitle: m.title, moduleLearningObjective: m.learning_objective };
+      acc[phase][week][day].lessons.push(lesson);
+    });
     return acc;
   }, {});
 
@@ -405,165 +413,173 @@ export default function Curriculum() {
           </div>
 
           {loadingModules ? (
-            <div style={{ color: 'var(--text-secondary)', padding: '24px 0' }}>Loading modules...</div>
+            <div style={{ color: 'var(--text-secondary)', padding: '24px 0' }}>Loading curriculum...</div>
           ) : (
-            Object.entries(groupedModules).map(([phase, phaseMods]) => {
+            Object.entries(groupedByPhase).map(([phase, weeks]) => {
               const phaseNum      = parseInt(phase);
               const phaseIsLocked = phaseNum >= 3;
               const accentColor   = ARCHETYPE_META[selectedProgram.archetype_name]?.color || 'var(--accent-electric)';
 
               return (
-                <div key={phase} style={{ marginBottom: '32px' }}>
+                <div key={phase} style={{ marginBottom: '36px' }}>
                   {/* Phase header */}
                   <div style={{
                     display: 'flex', alignItems: 'center', gap: '8px',
                     fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase',
                     letterSpacing: '0.1em', color: phaseIsLocked ? 'var(--text-secondary)' : accentColor,
-                    marginBottom: '10px', paddingLeft: '4px',
+                    marginBottom: '12px', paddingLeft: '4px',
                   }}>
                     Phase {phase} — {PHASE_LABELS[phaseNum]}
                     {phaseIsLocked && <span style={{ fontSize: '0.75rem' }}>🔒</span>}
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {phaseMods.map((module, idx) => {
-                      const moduleIsLocked = phaseIsLocked;
-                      const isOpen         = !moduleIsLocked && openModuleId === module.id;
-                      const showTooltip    = tooltipModuleId === module.id;
-                      const videos         = (module.lessons || []).filter(l => l.lesson_type === 'video');
-                      const readings       = (module.lessons || []).filter(l => l.lesson_type === 'reading');
-                      const tasks          = (module.lessons || []).filter(l => l.lesson_type === 'task');
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {Object.entries(weeks).sort(([a],[b]) => parseInt(a)-parseInt(b)).map(([weekNum, days]) => {
+                      const weekKey    = `w${phase}-${weekNum}`;
+                      const isOpen     = !phaseIsLocked && openModuleId === weekKey;
+                      const showTooltip = tooltipModuleId === weekKey;
+                      const allLessons = Object.values(days).flatMap(d => d.lessons);
+                      const videos     = allLessons.filter(l => l.lesson_type === 'video');
+                      const readings   = allLessons.filter(l => l.lesson_type === 'reading');
+                      const tasks      = allLessons.filter(l => l.lesson_type === 'task');
+                      const moduleTitle = Object.values(days)[0]?.moduleTitle || '';
 
                       return (
-                        <div key={module.id}>
+                        <div key={weekKey}>
                           <div
                             className="glass-panel"
                             style={{
                               padding: 0, overflow: 'hidden', position: 'relative',
                               border: isOpen
                                 ? `1px solid ${accentColor}`
-                                : moduleIsLocked
+                                : phaseIsLocked
                                   ? '1px solid rgba(255,255,255,0.05)'
                                   : '1px solid var(--glass-border)',
                             }}
                           >
-                            {moduleIsLocked && (
+                            {phaseIsLocked && (
                               <Lock size={14} style={{
                                 position: 'absolute', top: '14px', right: '16px',
                                 color: '#6b7280', pointerEvents: 'none', zIndex: 2,
                               }} />
                             )}
 
+                            {/* Week accordion header */}
                             <button
-                              onClick={() => moduleIsLocked ? handleLockedModuleClick(module.id) : toggleModule(module.id)}
+                              onClick={() => phaseIsLocked
+                                ? handleLockedModuleClick(weekKey)
+                                : toggleModule(weekKey)
+                              }
                               style={{
                                 width: '100%', textAlign: 'left', background: 'none', border: 'none',
-                                padding: '16px 20px', cursor: moduleIsLocked ? 'not-allowed' : 'pointer',
+                                padding: '16px 20px', cursor: phaseIsLocked ? 'not-allowed' : 'pointer',
                                 display: 'flex', alignItems: 'flex-start', gap: '14px',
                               }}
                             >
-                              <div style={{
-                                opacity: moduleIsLocked ? 0.5 : 1,
-                                display: 'flex', alignItems: 'flex-start', gap: '14px', flex: 1,
-                              }}>
+                              <div style={{ opacity: phaseIsLocked ? 0.5 : 1, display: 'flex', alignItems: 'flex-start', gap: '14px', flex: 1 }}>
                                 <div style={{
-                                  width: '28px', height: '28px', borderRadius: '8px', flexShrink: 0, marginTop: '1px',
+                                  width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
                                   background: ARCHETYPE_META[selectedProgram.archetype_name]?.bg || 'rgba(59,130,246,0.1)',
                                   color: accentColor,
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                  fontSize: '0.8rem', fontWeight: 700,
+                                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                  fontSize: '0.6rem', fontWeight: 700, lineHeight: 1.1,
                                 }}>
-                                  {(idx + 1) + ((phaseNum - 1) * 2)}
+                                  <span style={{ fontSize: '0.8rem' }}>W{weekNum}</span>
                                 </div>
                                 <div style={{ flex: 1 }}>
-                                  <div style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-primary)', marginBottom: '4px' }}>
-                                    {module.title}
+                                  <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)', marginBottom: '2px' }}>
+                                    Week {weekNum}
                                   </div>
-                                  {module.learning_objective && (
-                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                                      {module.learning_objective}
-                                    </div>
-                                  )}
-                                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                                    {moduleTitle}
+                                  </div>
+                                  <div style={{ display: 'flex', gap: '8px' }}>
                                     {videos.length > 0   && <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>▶ {videos.length} video{videos.length > 1 ? 's' : ''}</span>}
                                     {readings.length > 0 && <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>📄 {readings.length} reading{readings.length > 1 ? 's' : ''}</span>}
                                     {tasks.length > 0    && <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>✏️ {tasks.length} task{tasks.length > 1 ? 's' : ''}</span>}
+                                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>· {Object.keys(days).length} day{Object.keys(days).length > 1 ? 's' : ''}</span>
                                   </div>
                                 </div>
                               </div>
-                              {!moduleIsLocked && (
-                                <span style={{ color: 'var(--text-secondary)', fontSize: '1rem', flexShrink: 0, marginTop: '2px' }}>
+                              {!phaseIsLocked && (
+                                <span style={{ color: 'var(--text-secondary)', fontSize: '1rem', flexShrink: 0, marginTop: '6px' }}>
                                   {isOpen ? '▲' : '▼'}
                                 </span>
                               )}
                             </button>
 
+                            {/* Expanded: Days → Lessons */}
                             {isOpen && (
-                              <div style={{ borderTop: '1px solid var(--glass-border)', padding: '12px 20px 16px' }}>
-                                {(module.lessons || []).map(lesson => {
-                                  const embedUrl = lesson.lesson_type === 'video' ? getYouTubeEmbedUrl(lesson.video_url) : null;
-                                  const isVideoOpen = openVideoId === lesson.id;
-                                  return (
-                                    <div key={lesson.id} style={{ borderBottom: '1px solid var(--glass-border)' }}>
-                                      <div
-                                        onClick={() => embedUrl && setOpenVideoId(isVideoOpen ? null : lesson.id)}
-                                        style={{
-                                          display: 'flex', alignItems: 'flex-start', gap: '12px',
-                                          padding: '10px 0',
-                                          cursor: embedUrl ? 'pointer' : 'default',
-                                        }}
-                                      >
-                                        <span style={{
-                                          fontSize: '0.72rem', fontWeight: 600, padding: '2px 8px',
-                                          borderRadius: '99px', flexShrink: 0, marginTop: '2px',
-                                          background: lesson.lesson_type === 'task'  ? 'rgba(245,158,11,0.15)' :
-                                                      lesson.lesson_type === 'video' ? 'rgba(59,130,246,0.15)'  : 'rgba(168,85,247,0.15)',
-                                          color: lesson.lesson_type === 'task'  ? '#f59e0b' :
-                                                 lesson.lesson_type === 'video' ? '#3b82f6' : '#a855f7',
-                                        }}>
-                                          {LESSON_TYPE_LABEL[lesson.lesson_type]}
-                                        </span>
-                                        <div style={{ flex: 1 }}>
-                                          <div style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            {lesson.title}
-                                            {lesson.author && (
-                                              <span style={{ fontWeight: 400, color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
-                                                — {lesson.author}{lesson.source ? `, ${lesson.source}` : ''}
-                                              </span>
-                                            )}
-                                            {!lesson.author && lesson.source && (
-                                              <span style={{ fontWeight: 400, color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
-                                                — {lesson.source}
-                                              </span>
-                                            )}
-                                            {embedUrl && (
-                                              <span style={{ fontSize: '0.7rem', color: '#3b82f6', marginLeft: 'auto' }}>
-                                                {isVideoOpen ? '▲ Hide' : '▶ Watch'}
-                                              </span>
-                                            )}
-                                          </div>
-                                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                                            {lesson.description || lesson.content}
-                                          </div>
-                                        </div>
-                                      </div>
-                                      {isVideoOpen && embedUrl && (
-                                        <div style={{ paddingBottom: '12px' }}>
-                                          <div style={{ position: 'relative', paddingTop: '56.25%', borderRadius: '10px', overflow: 'hidden', background: '#000' }}>
-                                            <iframe
-                                              src={embedUrl}
-                                              title={lesson.title}
-                                              frameBorder="0"
-                                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                              allowFullScreen
-                                              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
-                                            />
-                                          </div>
-                                        </div>
-                                      )}
+                              <div style={{ borderTop: '1px solid var(--glass-border)' }}>
+                                {Object.entries(days).sort(([a],[b]) => parseInt(a)-parseInt(b)).map(([dayNum, dayData]) => (
+                                  <div key={dayNum} style={{ borderBottom: '1px solid var(--glass-border)' }}>
+                                    {/* Day label */}
+                                    <div style={{
+                                      padding: '8px 20px',
+                                      fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase',
+                                      letterSpacing: '0.08em', color: accentColor,
+                                      background: 'rgba(255,255,255,0.02)',
+                                    }}>
+                                      Day {dayNum}
                                     </div>
-                                  );
-                                })}
+
+                                    {/* Lessons under this day */}
+                                    <div style={{ padding: '4px 20px 12px' }}>
+                                      {dayData.lessons.map(lesson => {
+                                        const embedUrl    = lesson.lesson_type === 'video' ? getYouTubeEmbedUrl(lesson.video_url) : null;
+                                        const isVideoOpen = openVideoId === lesson.id;
+                                        return (
+                                          <div key={lesson.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                                            <div
+                                              onClick={() => embedUrl && setOpenVideoId(isVideoOpen ? null : lesson.id)}
+                                              style={{
+                                                display: 'flex', alignItems: 'flex-start', gap: '12px',
+                                                padding: '10px 0',
+                                                cursor: embedUrl ? 'pointer' : 'default',
+                                              }}
+                                            >
+                                              <span style={{
+                                                fontSize: '0.72rem', fontWeight: 600, padding: '2px 8px',
+                                                borderRadius: '99px', flexShrink: 0, marginTop: '2px',
+                                                background: lesson.lesson_type === 'task'  ? 'rgba(245,158,11,0.15)' :
+                                                            lesson.lesson_type === 'video' ? 'rgba(59,130,246,0.15)'  : 'rgba(168,85,247,0.15)',
+                                                color: lesson.lesson_type === 'task'  ? '#f59e0b' :
+                                                       lesson.lesson_type === 'video' ? '#3b82f6' : '#a855f7',
+                                              }}>
+                                                {LESSON_TYPE_LABEL[lesson.lesson_type]}
+                                              </span>
+                                              <div style={{ flex: 1 }}>
+                                                <div style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                  {lesson.title}
+                                                  {lesson.author && <span style={{ fontWeight: 400, color: 'var(--text-secondary)', fontSize: '0.8rem' }}>— {lesson.author}{lesson.source ? `, ${lesson.source}` : ''}</span>}
+                                                  {!lesson.author && lesson.source && <span style={{ fontWeight: 400, color: 'var(--text-secondary)', fontSize: '0.8rem' }}>— {lesson.source}</span>}
+                                                  {embedUrl && <span style={{ fontSize: '0.7rem', color: '#3b82f6', marginLeft: 'auto' }}>{isVideoOpen ? '▲ Hide' : '▶ Watch'}</span>}
+                                                </div>
+                                                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                                                  {lesson.description || lesson.content}
+                                                </div>
+                                              </div>
+                                            </div>
+                                            {isVideoOpen && embedUrl && (
+                                              <div style={{ paddingBottom: '12px' }}>
+                                                <div style={{ position: 'relative', paddingTop: '56.25%', borderRadius: '10px', overflow: 'hidden', background: '#000' }}>
+                                                  <iframe
+                                                    src={embedUrl}
+                                                    title={lesson.title}
+                                                    frameBorder="0"
+                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                    allowFullScreen
+                                                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+                                                  />
+                                                </div>
+                                              </div>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
                             )}
                           </div>
@@ -572,7 +588,7 @@ export default function Curriculum() {
                             <div style={{
                               marginTop: '6px', padding: '8px 14px', borderRadius: '8px',
                               background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.25)',
-                              fontSize: '0.78rem', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '6px',
+                              fontSize: '0.78rem', color: '#fbbf24',
                             }}>
                               🔒 Complete Phase 2 to unlock specialization content.
                             </div>
@@ -582,37 +598,18 @@ export default function Curriculum() {
                     })}
                   </div>
 
-                  {/* ── Mark Phase Complete button ── */}
+                  {/* Mark Phase Complete */}
                   <button
                     onClick={() => setRewardModal(`phase${phaseNum}`)}
                     style={{
-                      marginTop: '14px',
-                      width: '100%',
-                      padding: '11px 20px',
-                      borderRadius: '10px',
-                      border: '1.5px solid rgba(139,92,246,0.4)',
-                      background: 'rgba(139,92,246,0.05)',
-                      color: '#a78bfa',
-                      fontSize: '0.82rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      fontFamily: 'inherit',
-                      transition: 'all 0.2s',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px',
+                      marginTop: '14px', width: '100%', padding: '11px 20px', borderRadius: '10px',
+                      border: '1.5px solid rgba(139,92,246,0.4)', background: 'rgba(139,92,246,0.05)',
+                      color: '#a78bfa', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer',
+                      fontFamily: 'inherit', transition: 'all 0.2s', display: 'flex',
+                      alignItems: 'center', justifyContent: 'center', gap: '8px',
                     }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.background    = 'rgba(139,92,246,0.12)';
-                      e.currentTarget.style.borderColor   = 'rgba(139,92,246,0.7)';
-                      e.currentTarget.style.color         = '#c4b5fd';
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.background    = 'rgba(139,92,246,0.05)';
-                      e.currentTarget.style.borderColor   = 'rgba(139,92,246,0.4)';
-                      e.currentTarget.style.color         = '#a78bfa';
-                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(139,92,246,0.12)'; e.currentTarget.style.borderColor = 'rgba(139,92,246,0.7)'; e.currentTarget.style.color = '#c4b5fd'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(139,92,246,0.05)'; e.currentTarget.style.borderColor = 'rgba(139,92,246,0.4)'; e.currentTarget.style.color = '#a78bfa'; }}
                   >
                     ✓ Mark Phase {phaseNum} Complete
                   </button>
