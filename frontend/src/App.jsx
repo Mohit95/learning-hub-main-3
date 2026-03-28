@@ -147,6 +147,9 @@ export default function App() {
 
   useEffect(() => {
     initialize();
+    // Wake up Railway backend on app load to avoid cold-start delays
+    const api = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+    fetch(`${api}/health`).catch(() => {});
   }, []);
 
   return (
