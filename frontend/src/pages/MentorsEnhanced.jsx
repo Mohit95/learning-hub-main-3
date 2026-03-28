@@ -102,7 +102,7 @@ export default function MentorsEnhanced() {
             </div>
             
             <div className="rating">
-              <span>★ {mentor.rating}</span> · {mentor.sessions} sessions · ${mentor.hourlyRate}/hr
+              <span>★ {mentor.rating}</span> · {mentor.sessions} sessions
             </div>
             
             <div className="divider"></div>
