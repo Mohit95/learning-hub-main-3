@@ -40,7 +40,12 @@ app.add_middleware(
 # Generic Health Route
 @app.get("/health")
 def health_check():
-    return {"status": "ok", "message": "FastAPI backend is running modularly"}
+    from config import settings
+    return {
+        "status": "ok",
+        "anthropic_key_set": bool(settings.anthropic_api_key),
+        "openai_key_set": bool(settings.openai_api_key),
+    }
 
 # Attach routers
 app.include_router(assessments.router)
