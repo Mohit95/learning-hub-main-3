@@ -62,9 +62,9 @@ export default function AppLayout() {
         {/* Nav links */}
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
           {NAV_LINKS.map(({ to, icon: Icon, label }) => (
-            <NavLink key={to} to={to} style={({ isActive }) => linkStyle(isActive)}>
+            <NavLink key={to} to={to} className="sidebar-nav-item" style={({ isActive }) => linkStyle(isActive)}>
               <Icon size={18} />
-              {label}
+              <span className="nav-label">{label}</span>
             </NavLink>
           ))}
 
@@ -74,9 +74,9 @@ export default function AppLayout() {
                 Admin
               </div>
               {ADMIN_LINKS.map(({ to, icon: Icon, label }) => (
-                <NavLink key={to} to={to} style={({ isActive }) => linkStyle(isActive)}>
+                <NavLink key={to} to={to} className="sidebar-nav-item" style={({ isActive }) => linkStyle(isActive)}>
                   <Icon size={18} />
-                  {label}
+                  <span className="nav-label">{label}</span>
                 </NavLink>
               ))}
             </>

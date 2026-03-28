@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Play, BookOpen, PenTool, Folder, ExternalLink, Clock, Check, Loader, Upload, Calendar } from 'lucide-react';
+import { Play, BookOpen, PenTool, Folder, ExternalLink, Clock, Loader, Upload, Calendar } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const TYPE_ICONS = { video: Play, reading: BookOpen, practice: PenTool, project: Folder };
@@ -45,7 +45,18 @@ function StatusCheckbox({ status, onCycle, updating }) {
         opacity: updating ? 0.5 : 1,
       }}
     >
-      {isCompleted && <Check size={14} color="#0b0f19" strokeWidth={3} />}
+      {isCompleted && (
+        <svg viewBox="0 0 14 14" width="14" height="14" fill="none" aria-hidden="true">
+          <polyline
+            className="check-path"
+            points="2,7 6,11 12,3"
+            stroke="#0b0f19"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      )}
       {isInProgress && <Loader size={14} color="#fb923c" style={{ animation: 'spin 2s linear infinite' }} />}
     </button>
   );

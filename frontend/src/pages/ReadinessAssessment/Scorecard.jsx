@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 
@@ -52,6 +52,26 @@ export default function ReadinessScorecard() {
   const { dimensions, overallScore, zone } = result;
   const scoreColor = zoneColor(zone);
 
+  // Count-up + arc animation
+  const [displayScore, setDisplayScore] = useState(0);
+  const [barsVisible, setBarsVisible] = useState(false);
+
+  useEffect(() => {
+    const barTimer = setTimeout(() => setBarsVisible(true), 150);
+    const duration = 1200;
+    const start = performance.now();
+    let raf;
+    const tick = (now) => {
+      const elapsed = now - start;
+      const t = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - t, 3); // ease-out-cubic
+      setDisplayScore(Math.round(eased * overallScore));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => { cancelAnimationFrame(raf); clearTimeout(barTimer); };
+  }, [overallScore]);
+
   return (
     <div className="page animate-fade-in" style={{ maxWidth: '900px', margin: '0 auto' }}>
       <button
@@ -71,9 +91,9 @@ export default function ReadinessScorecard() {
       <div className="grid-2" style={{ marginBottom: '32px' }}>
         {/* Overall Score Circle */}
         <div className="glass-panel" style={{ padding: '40px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ position: 'relative', width: '160px', height: '160px', borderRadius: '50%', background: `conic-gradient(${scoreColor} ${overallScore}%, rgba(255,255,255,0.05) 0)`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' }}>
+          <div style={{ position: 'relative', width: '160px', height: '160px', borderRadius: '50%', background: `conic-gradient(${scoreColor} ${displayScore}%, rgba(255,255,255,0.05) 0)`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' }}>
             <div style={{ width: '140px', height: '140px', borderRadius: '50%', background: 'var(--bg-secondary)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontSize: '2.5rem', fontWeight: 800, color: scoreColor }}>{overallScore}%</span>
+              <span style={{ fontSize: '2.5rem', fontWeight: 800, color: scoreColor }}>{displayScore}%</span>
               <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ready</span>
             </div>
           </div>
@@ -101,7 +121,7 @@ export default function ReadinessScorecard() {
                     <span style={{ fontWeight: 600, fontSize: '0.85rem', color }}>{d.score} / 4</span>
                   </div>
                   <div style={{ height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', background: color, width: `${fillPct}%`, borderRadius: '4px', transition: 'width 0.6s ease' }} />
+                    <div style={{ height: '100%', background: color, width: barsVisible ? `${fillPct}%` : '0%', borderRadius: '4px', transition: 'width 800ms ease-out' }} />
                   </div>
                 </div>
               );

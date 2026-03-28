@@ -1,5 +1,5 @@
 import { Lock, ChevronDown, ChevronRight } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TaskCard from './TaskCard';
 import RewardCard from './RewardCard';
 
@@ -23,6 +23,8 @@ export default function PhaseGroup({
   rewardStatus,
 }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [barVisible, setBarVisible] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setBarVisible(true), 100); return () => clearTimeout(t); }, []);
 
   const completed = steps.filter((s) => s.status === 'completed').length;
   const total = steps.length;
@@ -94,7 +96,7 @@ export default function PhaseGroup({
             <div style={{ textAlign: 'right' }}>
               <span style={{ fontSize: '0.8rem', fontWeight: 700, color }}>{completed}/{total}</span>
               <div style={{ width: '60px', height: '4px', borderRadius: '2px', background: 'rgba(255,255,255,0.06)', marginTop: '4px' }}>
-                <div style={{ width: `${pct}%`, height: '100%', borderRadius: '2px', background: color, transition: 'width 0.4s ease' }} />
+                <div style={{ width: barVisible ? `${pct}%` : '0%', height: '100%', borderRadius: '2px', background: color, transition: 'width 800ms ease-out' }} />
               </div>
             </div>
             {/* Collapse chevron */}
