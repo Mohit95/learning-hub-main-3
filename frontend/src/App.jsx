@@ -42,10 +42,10 @@ const Navbar = () => (
     <div style={{ display: 'flex', gap: '32px', alignItems: 'center' }}>
       <a href="#features" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontWeight: 500, transition: 'color 0.2s' }}>Features</a>
       <a href="#mentors" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontWeight: 500, transition: 'color 0.2s' }}>Mentors</a>
-      <Link to="/app">
+      <Link to="/signin">
         <button className="btn-outline">Sign In</button>
       </Link>
-      <Link to="/app">
+      <Link to="/signin">
         <button className="btn-primary" style={{ padding: '10px 20px', fontSize: '0.9rem' }}>Get Started</button>
       </Link>
     </div>
@@ -68,7 +68,7 @@ const Hero = () => (
         Master product sense, define your roadmap, and get 1-on-1 guidance from top-tier Product Managers at elite tech companies.
       </p>
       <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }} className="animate-fade-in delay-200">
-        <Link to="/app">
+        <Link to="/signin">
           <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '16px 32px', fontSize: '1.1rem' }}>
             Take the Free Assessment <ChevronRight size={20} />
           </button>
