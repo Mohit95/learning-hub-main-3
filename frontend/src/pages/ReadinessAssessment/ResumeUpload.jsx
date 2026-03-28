@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { UploadCloud, FileText, CheckCircle, ArrowRight } from 'lucide-react';
-import { scoreAssessment } from '../../services/assessmentScorer';
+import { UploadCloud, FileText, CheckCircle, ArrowRight, AlertCircle } from 'lucide-react';
+import { scoreAssessment, scoreAssessmentWithResume } from '../../services/assessmentScorer';
 
 export default function ResumeUpload() {
   const navigate = useNavigate();
@@ -12,17 +12,48 @@ export default function ResumeUpload() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
 
+  // Guard: answers missing means user navigated here directly / refreshed
+  if (answers.length === 0) {
+    return (
+      <div className="page animate-fade-in" style={{ maxWidth: '560px', margin: '0 auto', paddingTop: '80px', textAlign: 'center' }}>
+        <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'rgba(251,146,60,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+          <AlertCircle size={28} color="#fb923c" />
+        </div>
+        <h2 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '12px' }}>Assessment answers not found</h2>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '28px', lineHeight: 1.6 }}>
+          Please complete the 10-question diagnostic first. Your answers are needed before uploading a resume.
+        </p>
+        <button className="btn-primary" onClick={() => navigate('/app/readiness/questionnaire')} style={{ padding: '12px 28px' }}>
+          Start Questionnaire
+        </button>
+      </div>
+    );
+  }
+
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
     }
   };
 
-  const handleProceed = async () => {
+  const handleSkip = async () => {
     setIsProcessing(true);
     setError('');
     try {
       await scoreAssessment(answers);
+      navigate('/app/readiness/scorecard');
+    } catch (err) {
+      setIsProcessing(false);
+      setError('Scoring failed. Please try again.');
+    }
+  };
+
+  const handleAnalyzeResume = async () => {
+    if (!file) return;
+    setIsProcessing(true);
+    setError('');
+    try {
+      await scoreAssessmentWithResume(answers, file);
       navigate('/app/readiness/scorecard');
     } catch (err) {
       setIsProcessing(false);
@@ -64,7 +95,7 @@ export default function ResumeUpload() {
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '32px' }}>{(file.size / 1024 / 1024).toFixed(2)} MB</p>
               <div style={{ display: 'flex', gap: '16px' }}>
                 <button className="btn-outline" onClick={() => setFile(null)}>Remove</button>
-                <button className="btn-primary" onClick={handleProceed} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button className="btn-primary" onClick={handleAnalyzeResume} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   Analyze Resume <ArrowRight size={16} />
                 </button>
               </div>
@@ -77,7 +108,7 @@ export default function ResumeUpload() {
 
           <div style={{ marginTop: '32px' }}>
             <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginRight: '16px' }}>Not ready to upload?</span>
-            <button className="btn-outline" onClick={handleProceed} style={{ padding: '8px 20px', fontSize: '0.9rem' }}>
+            <button className="btn-outline" onClick={handleSkip} style={{ padding: '8px 20px', fontSize: '0.9rem' }}>
               Skip for now
             </button>
           </div>
@@ -87,7 +118,9 @@ export default function ResumeUpload() {
           <div style={{ width: '64px', height: '64px', border: '4px solid rgba(255,255,255,0.1)', borderTopColor: 'var(--accent-electric)', borderRadius: '50%', animation: 'spin 1s linear infinite', marginBottom: '24px' }} />
           <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
           <h2 style={{ fontSize: '1.4rem', fontWeight: 600, marginBottom: '8px' }}>Calculating Readiness...</h2>
-          <p style={{ color: 'var(--text-secondary)' }}>Scoring your answers across 5 PM competency dimensions.</p>
+          <p style={{ color: 'var(--text-secondary)' }}>
+            {file ? 'Cross-referencing your resume with your answers across 5 PM dimensions.' : 'Scoring your answers across 5 PM competency dimensions.'}
+          </p>
         </div>
       )}
     </div>

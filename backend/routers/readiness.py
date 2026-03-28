@@ -1,9 +1,10 @@
+import io
 import json
 import asyncio
 import anthropic
-from fastapi import APIRouter
+from fastapi import APIRouter, UploadFile, File, Form
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 from config import settings
 
 router = APIRouter(prefix="/api/readiness", tags=["readiness"])
@@ -46,6 +47,42 @@ Score 2: Answer is vague or generic, no clear reasoning structure.
 Score 1: Irrelevant or off-topic answer.
 Return ONLY a JSON object: { "score": number, "feedback": "string (max 30 words)", "strength": "string (10 words)", "gap": "string (10 words)" }"""
 
+SYSTEM_PROMPT_WITH_RESUME = """You are a senior PM hiring manager scoring a PM candidate on a 1-4 scale.
+You have their self-assessment answers AND their resume. Use both to score.
+Score 4: Strong reasoning AND resume shows real PM experience validating the answer.
+Score 3: Good reasoning but resume shows limited PM exposure, or strong resume with partial reasoning.
+Score 2: Vague reasoning or resume shows minimal relevant PM experience.
+Score 1: Irrelevant answer or no relevant experience in either.
+Return ONLY a JSON object: { "score": number, "feedback": "string (max 30 words)", "strength": "string (10 words)", "gap": "string (10 words)" }"""
+
+
+async def extract_resume_text(file: UploadFile) -> str:
+    """Extract plain text from an uploaded PDF or DOCX resume."""
+    content = await file.read()
+    name = (file.filename or "").lower()
+    text = ""
+    if name.endswith(".pdf"):
+        try:
+            from pypdf import PdfReader
+            reader = PdfReader(io.BytesIO(content))
+            for page in reader.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+        except Exception:
+            text = ""
+    elif name.endswith(".docx"):
+        try:
+            import zipfile, re
+            with zipfile.ZipFile(io.BytesIO(content)) as z:
+                with z.open("word/document.xml") as f:
+                    xml = f.read().decode("utf-8")
+                    text = re.sub(r"<[^>]+>", " ", xml)
+                    text = re.sub(r"\s+", " ", text).strip()
+        except Exception:
+            text = ""
+    return text[:3000]  # cap to avoid blowing token budget
+
 
 class AnswerItem(BaseModel):
     dimension: str
@@ -54,6 +91,19 @@ class AnswerItem(BaseModel):
 
 class ScoreRequest(BaseModel):
     answers: List[AnswerItem]
+
+
+def _safe_parse(text: str) -> dict:
+    """Extract JSON from Claude's response even if it adds surrounding text."""
+    text = text.strip()
+    start = text.find("{")
+    end = text.rfind("}") + 1
+    if start != -1 and end > start:
+        try:
+            return json.loads(text[start:end])
+        except json.JSONDecodeError:
+            pass
+    return {"score": 2, "feedback": "Could not parse response.", "strength": "N/A", "gap": "N/A"}
 
 
 def _score_dimension(dimension: str, answer1: str, answer2: str) -> dict:
@@ -72,34 +122,34 @@ def _score_dimension(dimension: str, answer1: str, answer2: str) -> dict:
         system=SYSTEM_PROMPT,
         messages=[{"role": "user", "content": user_message}],
     )
-    return json.loads(response.content[0].text)
+    return _safe_parse(response.content[0].text)
 
 
-@router.post("/score")
-async def score_readiness(body: ScoreRequest):
-    # Group answers by dimension (in order: index 0 = Q1, index 1 = Q2 for each dim)
-    dim_answers: dict[str, list[str]] = {}
-    for item in body.answers:
-        dim_answers.setdefault(item.dimension, []).append(item.answer)
+def _score_dimension_with_resume(dimension: str, answer1: str, answer2: str, resume_text: str) -> dict:
+    q_texts = [q["text"] for q in QUESTIONS if q["dimension"] == dimension]
+    user_message = (
+        f"RESUME:\n{resume_text}\n\n"
+        f"Dimension: {dimension}\n"
+        f"Question 1: {q_texts[0]}\n"
+        f"Answer 1: {answer1}\n\n"
+        f"Question 2: {q_texts[1]}\n"
+        f"Answer 2: {answer2}\n\n"
+        f"Calibration context: {CALIBRATIONS[dimension]}"
+    )
+    response = client.messages.create(
+        model="claude-3-5-haiku-20241022",
+        max_tokens=256,
+        system=SYSTEM_PROMPT_WITH_RESUME,
+        messages=[{"role": "user", "content": user_message}],
+    )
+    return _safe_parse(response.content[0].text)
 
-    # Run all 5 Claude calls in parallel
-    async def score_dim(dim):
-        answers_for_dim = dim_answers.get(dim, ["", ""])
-        a1 = answers_for_dim[0] if len(answers_for_dim) > 0 else ""
-        a2 = answers_for_dim[1] if len(answers_for_dim) > 1 else ""
-        result = await asyncio.get_event_loop().run_in_executor(
-            None, _score_dimension, dim, a1, a2
-        )
-        return dim, result
 
-    results = await asyncio.gather(*[score_dim(dim) for dim in WEIGHTS])
-    dimensions = {dim: result for dim, result in results}
-
-    # Weighted overall score (scores are 1-4, normalize to 100)
+def _build_result(dimensions: dict) -> dict:
+    """Compute overall score, archetype, and zone from dimension scores."""
     raw = sum(dimensions[d]["score"] * WEIGHTS[d] for d in WEIGHTS)
     overall_score = round(((raw - 1) / 3) * 100)
 
-    # Archetype
     ps = dimensions["product_sense"]["score"]
     at = dimensions["analytical_thinking"]["score"]
     tf = dimensions["technical_fluency"]["score"]
@@ -111,7 +161,6 @@ async def score_readiness(body: ScoreRequest):
     else:
         archetype = "General PM"
 
-    # Zone
     if overall_score >= 80:
         zone = "job_ready"
     elif overall_score >= 60:
@@ -119,9 +168,58 @@ async def score_readiness(body: ScoreRequest):
     else:
         zone = "foundational_gap"
 
-    return {
-        "dimensions": dimensions,
-        "overallScore": overall_score,
-        "archetype": archetype,
-        "zone": zone,
-    }
+    return {"dimensions": dimensions, "overallScore": overall_score, "archetype": archetype, "zone": zone}
+
+
+@router.post("/score")
+async def score_readiness(body: ScoreRequest):
+    dim_answers: dict[str, list[str]] = {}
+    for item in body.answers:
+        dim_answers.setdefault(item.dimension, []).append(item.answer)
+
+    async def score_dim(dim):
+        answers_for_dim = dim_answers.get(dim, ["", ""])
+        a1 = answers_for_dim[0] if len(answers_for_dim) > 0 else ""
+        a2 = answers_for_dim[1] if len(answers_for_dim) > 1 else ""
+        result = await asyncio.get_event_loop().run_in_executor(
+            None, _score_dimension, dim, a1, a2
+        )
+        return dim, result
+
+    results = await asyncio.gather(*[score_dim(dim) for dim in WEIGHTS])
+    dimensions = {dim: result for dim, result in results}
+    return _build_result(dimensions)
+
+
+@router.post("/score-with-resume")
+async def score_readiness_with_resume(
+    answers: str = Form(...),
+    resume: UploadFile = File(...),
+):
+    answer_items = [AnswerItem(**a) for a in json.loads(answers)]
+    resume_text = await extract_resume_text(resume)
+
+    dim_answers: dict[str, list[str]] = {}
+    for item in answer_items:
+        dim_answers.setdefault(item.dimension, []).append(item.answer)
+
+    async def score_dim(dim):
+        answers_for_dim = dim_answers.get(dim, ["", ""])
+        a1 = answers_for_dim[0] if len(answers_for_dim) > 0 else ""
+        a2 = answers_for_dim[1] if len(answers_for_dim) > 1 else ""
+        # Use resume-aware scoring if we extracted text, otherwise fall back
+        if resume_text:
+            result = await asyncio.get_event_loop().run_in_executor(
+                None, _score_dimension_with_resume, dim, a1, a2, resume_text
+            )
+        else:
+            result = await asyncio.get_event_loop().run_in_executor(
+                None, _score_dimension, dim, a1, a2
+            )
+        return dim, result
+
+    results = await asyncio.gather(*[score_dim(dim) for dim in WEIGHTS])
+    dimensions = {dim: result for dim, result in results}
+    result = _build_result(dimensions)
+    result["resumeUsed"] = bool(resume_text)
+    return result
