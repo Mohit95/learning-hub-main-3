@@ -1,7 +1,7 @@
 import io
 import json
 import asyncio
-import anthropic
+from openai import OpenAI
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
@@ -9,7 +9,7 @@ from config import settings
 
 router = APIRouter(prefix="/api/readiness", tags=["readiness"])
 
-client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+client = OpenAI(api_key=settings.openai_api_key)
 
 QUESTIONS = [
     {"id": 1, "dimension": "product_sense",       "text": "Our Quick-Commerce app saw a 15% drop in checkout completions, but 'Add to Cart' is stable. Walk me through your first three steps to find the root cause."},
@@ -116,13 +116,15 @@ def _score_dimension(dimension: str, answer1: str, answer2: str) -> dict:
         f"Answer 2: {answer2}\n\n"
         f"Calibration context: {CALIBRATIONS[dimension]}"
     )
-    response = client.messages.create(
-        model="claude-3-5-haiku-20241022",
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
         max_tokens=256,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": user_message}],
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_message},
+        ],
     )
-    return _safe_parse(response.content[0].text)
+    return _safe_parse(response.choices[0].message.content)
 
 
 def _score_dimension_with_resume(dimension: str, answer1: str, answer2: str, resume_text: str) -> dict:
@@ -136,13 +138,15 @@ def _score_dimension_with_resume(dimension: str, answer1: str, answer2: str, res
         f"Answer 2: {answer2}\n\n"
         f"Calibration context: {CALIBRATIONS[dimension]}"
     )
-    response = client.messages.create(
-        model="claude-3-5-haiku-20241022",
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
         max_tokens=256,
-        system=SYSTEM_PROMPT_WITH_RESUME,
-        messages=[{"role": "user", "content": user_message}],
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT_WITH_RESUME},
+            {"role": "user", "content": user_message},
+        ],
     )
-    return _safe_parse(response.content[0].text)
+    return _safe_parse(response.choices[0].message.content)
 
 
 def _build_result(dimensions: dict) -> dict:
