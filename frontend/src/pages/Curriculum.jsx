@@ -233,6 +233,19 @@ function RewardModal({ phaseKey, onClose }) {
   );
 }
 
+function getYouTubeEmbedUrl(url) {
+  if (!url) return null;
+  // youtu.be/ID
+  const shortMatch = url.match(/youtu\.be\/([^?&]+)/);
+  if (shortMatch) return `https://www.youtube.com/embed/${shortMatch[1]}`;
+  // youtube.com/watch?v=ID
+  const longMatch = url.match(/[?&]v=([^&]+)/);
+  if (longMatch) return `https://www.youtube.com/embed/${longMatch[1]}`;
+  // already an embed URL
+  if (url.includes('youtube.com/embed/')) return url;
+  return null;
+}
+
 export default function Curriculum() {
   const [programs, setPrograms]               = useState([]);
   const [selectedProgram, setSelectedProgram] = useState(null);
@@ -243,6 +256,7 @@ export default function Curriculum() {
   const [error, setError]                     = useState('');
   const [tooltipModuleId, setTooltipModuleId] = useState(null);
   const [rewardModal, setRewardModal]         = useState(null); // null | 'phase1' | 'phase2' | 'phase3' | 'phase4'
+  const [openVideoId, setOpenVideoId]         = useState(null);
   const tooltipTimer = useRef(null);
 
   const rawSelected  = localStorage.getItem('selectedArchetype');
@@ -486,44 +500,70 @@ export default function Curriculum() {
 
                             {isOpen && (
                               <div style={{ borderTop: '1px solid var(--glass-border)', padding: '12px 20px 16px' }}>
-                                {(module.lessons || []).map(lesson => (
-                                  <div
-                                    key={lesson.id}
-                                    style={{
-                                      display: 'flex', alignItems: 'flex-start', gap: '12px',
-                                      padding: '10px 0', borderBottom: '1px solid var(--glass-border)',
-                                    }}
-                                  >
-                                    <span style={{
-                                      fontSize: '0.72rem', fontWeight: 600, padding: '2px 8px',
-                                      borderRadius: '99px', flexShrink: 0, marginTop: '2px',
-                                      background: lesson.lesson_type === 'task'  ? 'rgba(245,158,11,0.15)' :
-                                                  lesson.lesson_type === 'video' ? 'rgba(59,130,246,0.15)'  : 'rgba(168,85,247,0.15)',
-                                      color: lesson.lesson_type === 'task'  ? '#f59e0b' :
-                                             lesson.lesson_type === 'video' ? '#3b82f6'                    : '#a855f7',
-                                    }}>
-                                      {LESSON_TYPE_LABEL[lesson.lesson_type]}
-                                    </span>
-                                    <div>
-                                      <div style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '2px' }}>
-                                        {lesson.title}
-                                        {lesson.author && (
-                                          <span style={{ fontWeight: 400, color: 'var(--text-secondary)', marginLeft: '6px', fontSize: '0.8rem' }}>
-                                            — {lesson.author}{lesson.source ? `, ${lesson.source}` : ''}
-                                          </span>
-                                        )}
-                                        {!lesson.author && lesson.source && (
-                                          <span style={{ fontWeight: 400, color: 'var(--text-secondary)', marginLeft: '6px', fontSize: '0.8rem' }}>
-                                            — {lesson.source}
-                                          </span>
-                                        )}
+                                {(module.lessons || []).map(lesson => {
+                                  const embedUrl = lesson.lesson_type === 'video' ? getYouTubeEmbedUrl(lesson.video_url) : null;
+                                  const isVideoOpen = openVideoId === lesson.id;
+                                  return (
+                                    <div key={lesson.id} style={{ borderBottom: '1px solid var(--glass-border)' }}>
+                                      <div
+                                        onClick={() => embedUrl && setOpenVideoId(isVideoOpen ? null : lesson.id)}
+                                        style={{
+                                          display: 'flex', alignItems: 'flex-start', gap: '12px',
+                                          padding: '10px 0',
+                                          cursor: embedUrl ? 'pointer' : 'default',
+                                        }}
+                                      >
+                                        <span style={{
+                                          fontSize: '0.72rem', fontWeight: 600, padding: '2px 8px',
+                                          borderRadius: '99px', flexShrink: 0, marginTop: '2px',
+                                          background: lesson.lesson_type === 'task'  ? 'rgba(245,158,11,0.15)' :
+                                                      lesson.lesson_type === 'video' ? 'rgba(59,130,246,0.15)'  : 'rgba(168,85,247,0.15)',
+                                          color: lesson.lesson_type === 'task'  ? '#f59e0b' :
+                                                 lesson.lesson_type === 'video' ? '#3b82f6' : '#a855f7',
+                                        }}>
+                                          {LESSON_TYPE_LABEL[lesson.lesson_type]}
+                                        </span>
+                                        <div style={{ flex: 1 }}>
+                                          <div style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            {lesson.title}
+                                            {lesson.author && (
+                                              <span style={{ fontWeight: 400, color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                                                — {lesson.author}{lesson.source ? `, ${lesson.source}` : ''}
+                                              </span>
+                                            )}
+                                            {!lesson.author && lesson.source && (
+                                              <span style={{ fontWeight: 400, color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                                                — {lesson.source}
+                                              </span>
+                                            )}
+                                            {embedUrl && (
+                                              <span style={{ fontSize: '0.7rem', color: '#3b82f6', marginLeft: 'auto' }}>
+                                                {isVideoOpen ? '▲ Hide' : '▶ Watch'}
+                                              </span>
+                                            )}
+                                          </div>
+                                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                                            {lesson.description || lesson.content}
+                                          </div>
+                                        </div>
                                       </div>
-                                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                                        {lesson.description || lesson.content}
-                                      </div>
+                                      {isVideoOpen && embedUrl && (
+                                        <div style={{ paddingBottom: '12px' }}>
+                                          <div style={{ position: 'relative', paddingTop: '56.25%', borderRadius: '10px', overflow: 'hidden', background: '#000' }}>
+                                            <iframe
+                                              src={embedUrl}
+                                              title={lesson.title}
+                                              frameBorder="0"
+                                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                              allowFullScreen
+                                              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+                                            />
+                                          </div>
+                                        </div>
+                                      )}
                                     </div>
-                                  </div>
-                                ))}
+                                  );
+                                })}
                               </div>
                             )}
                           </div>
