@@ -52,6 +52,17 @@ function BookingModal({ mentor, userName, onClose }) {
                 onChange={e => setStartTime(e.target.value)}
                 min={new Date().toISOString().slice(0, 16)}
                 required
+                style={{
+                  background: '#1e2235',
+                  color: '#ffffff',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: '10px',
+                  padding: '10px 14px',
+                  fontSize: '0.95rem',
+                  colorScheme: 'dark',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                }}
               />
             </div>
             <button
