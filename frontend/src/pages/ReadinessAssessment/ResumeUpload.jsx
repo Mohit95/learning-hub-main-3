@@ -44,7 +44,7 @@ export default function ResumeUpload() {
       navigate('/app/readiness/scorecard');
     } catch (err) {
       setIsProcessing(false);
-      setError('Scoring failed. Please try again.');
+      setError(err.message || 'Scoring failed. Please try again.');
     }
   };
 
@@ -57,7 +57,7 @@ export default function ResumeUpload() {
       navigate('/app/readiness/scorecard');
     } catch (err) {
       setIsProcessing(false);
-      setError('Scoring failed. Please try again.');
+      setError(err.message || 'Scoring failed. Please try again.');
     }
   };
 

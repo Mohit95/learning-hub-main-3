@@ -26,7 +26,9 @@ export async function scoreAssessment(answers) {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || 'Scoring failed');
+      const msg = err.detail || err.message || `HTTP ${res.status}`;
+      console.error('[scoreAssessment] backend error:', msg, err);
+      throw new Error(msg);
     }
     return res.json();
   });
@@ -44,7 +46,9 @@ export async function scoreAssessmentWithResume(answers, file) {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || 'Scoring failed');
+      const msg = err.detail || err.message || `HTTP ${res.status}`;
+      console.error('[scoreAssessmentWithResume] backend error:', msg, err);
+      throw new Error(msg);
     }
     return res.json();
   });
