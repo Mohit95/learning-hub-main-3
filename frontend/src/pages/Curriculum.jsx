@@ -52,7 +52,7 @@ const REWARD_CONFIG = {
     subtext:    null,
     closeLabel: "I'll book later →",
     closeNav:   null,
-    calendlyUrl: 'https://calendly.com/dhirendra-mohan/30min',
+    calendlyUrl: 'https://calendly.com/sfdcdreamz/30min',
   },
   phase3: {
     checkColor: '#3b82f6',
