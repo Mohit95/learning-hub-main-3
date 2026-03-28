@@ -19,17 +19,18 @@ async function attempt(answers) {
 }
 
 export async function scoreAssessment(answers) {
-  let result;
-  try {
-    result = await attempt(answers);
-  } catch {
-    // Retry once after 3s — handles Railway cold start delay
-    await new Promise(r => setTimeout(r, 3000));
-    result = await attempt(answers);
+  // Retry up to 3 times with increasing delays — handles Railway cold start (can take 15-20s)
+  const delays = [6000, 10000];
+  let lastErr;
+  for (let i = 0; i <= delays.length; i++) {
+    try {
+      const result = await attempt(answers);
+      localStorage.setItem('assessmentResult', JSON.stringify(result));
+      return result;
+    } catch (err) {
+      lastErr = err;
+      if (i < delays.length) await new Promise(r => setTimeout(r, delays[i]));
+    }
   }
-
-  // Persist to localStorage so gap analysis and scorecard pages can read it
-  localStorage.setItem('assessmentResult', JSON.stringify(result));
-
-  return result;
+  throw lastErr;
 }

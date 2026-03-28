@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+
+const API = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 const questions = [
@@ -80,6 +82,11 @@ const MIN_CHARS = 80;
 export default function Questionnaire() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
+
+  // Warm up the Railway backend while the user answers questions
+  useEffect(() => {
+    fetch(`${API}/health`).catch(() => {});
+  }, []);
   const [answers, setAnswers] = useState(
     Array(questions.length).fill(null).map((_, i) => ({ dimension: questions[i].dimension, answer: '' }))
   );
