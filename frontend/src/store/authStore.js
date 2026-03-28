@@ -10,6 +10,11 @@ export const useAuthStore = create((set, get) => ({
   setUser: (user) => set({ user }),
   setProfile: (profile) => set({ profile }),
   setLoading: (loading) => set({ loading }),
+  setDemoUser: () => {
+    const mockUser = { id: '00000000-0000-0000-0000-000000000001', email: 'demo@learninghub.app' };
+    const mockProfile = { id: mockUser.id, full_name: 'Demo User', role: 'learner', avatar_url: null };
+    set({ user: mockUser, profile: mockProfile });
+  },
 
   initialize: async () => {
     set({ loading: true });
@@ -20,10 +25,7 @@ export const useAuthStore = create((set, get) => ({
         const { data: profile } = await getProfile(session.user.id);
         set({ profile });
       } else {
-        // Auth bypass: inject mock user so pages load during testing
-        const mockUser = { id: '00000000-0000-0000-0000-000000000001', email: 'test@example.com' };
-        const mockProfile = { id: mockUser.id, full_name: 'Test User', role: 'learner', avatar_url: null };
-        set({ user: mockUser, profile: mockProfile });
+        set({ user: null, profile: null });
       }
     } catch (err) {
       console.error('Auth init error:', err);
@@ -38,9 +40,9 @@ export const useAuthStore = create((set, get) => ({
         const { data: profile } = await getProfile(session.user.id);
         set({ profile, loading: false, initialized: true });
       } else {
-        // Don't wipe mock user when no real session exists (auth bypass mode)
+        // Only clear if not demo mode
         const currentUser = get().user;
-        if (currentUser?.email !== 'test@example.com') {
+        if (currentUser?.id !== '00000000-0000-0000-0000-000000000001') {
           set({ user: null, profile: null, loading: false, initialized: true });
         }
       }

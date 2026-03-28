@@ -10,7 +10,7 @@ export default function SignIn() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { setUser, setProfile } = useAuthStore();
+  const { setUser, setProfile, setDemoUser } = useAuthStore();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -92,7 +92,27 @@ export default function SignIn() {
           </button>
         </form>
 
-        <p style={{ textAlign: 'center', marginTop: '24px', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+        <div style={{ margin: '20px 0', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ flex: 1, height: '1px', background: 'var(--glass-border)' }} />
+          <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>or</span>
+          <div style={{ flex: 1, height: '1px', background: 'var(--glass-border)' }} />
+        </div>
+
+        <button
+          type="button"
+          onClick={() => { setDemoUser(); navigate('/app/dashboard'); }}
+          style={{
+            width: '100%', padding: '12px', borderRadius: '10px', fontSize: '0.95rem', fontWeight: 600,
+            background: 'transparent', border: '1px solid var(--glass-border)',
+            color: 'var(--text-secondary)', cursor: 'pointer', transition: 'border-color 0.2s, color 0.2s',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent-electric)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+        >
+          Continue with Demo Data
+        </button>
+
+        <p style={{ textAlign: 'center', marginTop: '20px', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
           Don't have an account?{' '}
           <Link to="/signup" style={{ color: 'var(--accent-electric)', textDecoration: 'none', fontWeight: 600 }}>
             Create one

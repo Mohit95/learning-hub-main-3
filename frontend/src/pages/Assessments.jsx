@@ -51,6 +51,16 @@ export default function Assessments() {
         </div>
       </div>
 
+      <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+        Not ready yet?{' '}
+        <span
+          onClick={() => navigate('/app/gap-analysis')}
+          style={{ color: 'var(--accent-electric)', cursor: 'pointer', fontWeight: 600, textDecoration: 'none' }}
+        >
+          Skip for now →
+        </span>
+      </p>
+
     </div>
   );
 }
