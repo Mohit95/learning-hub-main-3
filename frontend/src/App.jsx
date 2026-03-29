@@ -42,7 +42,6 @@ const Navbar = () => (
     </div>
     <div style={{ display: 'flex', gap: '32px', alignItems: 'center' }}>
       <a href="#features" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontWeight: 500, transition: 'color 0.2s' }}>Features</a>
-      <a href="#mentors" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontWeight: 500, transition: 'color 0.2s' }}>Mentors</a>
       <Link to="/signin">
         <button className="btn-outline">Sign In</button>
       </Link>
@@ -59,9 +58,6 @@ const Hero = () => (
     <div style={{ position: 'absolute', width: '800px', height: '800px', background: 'radial-gradient(circle, rgba(59,130,246,0.15) 0%, rgba(11,15,25,0) 70%)', top: '-20%', left: '50%', transform: 'translateX(-50%)', zIndex: -1 }} />
 
     <div style={{ maxWidth: '800px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px', opacity: 0 }} className="animate-fade-in">
-      <div style={{ padding: '8px 16px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', borderRadius: '9999px', fontSize: '0.85rem', fontWeight: 600, color: 'var(--accent-electric)' }}>
-        🚀 The #1 Mentorship Platform for PMs
-      </div>
       <h1 style={{ fontSize: '4.5rem', fontWeight: 800, lineHeight: 1.1, letterSpacing: '-0.02em' }}>
         Accelerate Your <span className="text-gradient">PM Career</span>
       </h1>
