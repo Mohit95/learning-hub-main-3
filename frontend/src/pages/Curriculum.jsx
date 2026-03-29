@@ -257,12 +257,22 @@ function RewardModal({ phaseKey, onClose }) {
   );
 }
 
+function getYouTubeEmbedUrl(url) {
+  if (!url) return null;
+  const shortMatch = url.match(/youtu\.be\/([^?&]+)/);
+  if (shortMatch) return `https://www.youtube.com/embed/${shortMatch[1]}`;
+  const longMatch = url.match(/[?&]v=([^&]+)/);
+  if (longMatch) return `https://www.youtube.com/embed/${longMatch[1]}`;
+  if (url.includes('youtube.com/embed/')) return url;
+  return null;
+}
 
 export default function Curriculum() {
   const [programs, setPrograms]               = useState([]);
   const [selectedProgram, setSelectedProgram] = useState(null);
   const [modules, setModules]                 = useState([]);
   const [openModuleId, setOpenModuleId]       = useState(null);
+  const [openVideoId, setOpenVideoId]         = useState(null);
   const [loadingPrograms, setLoadingPrograms] = useState(true);
   const [loadingModules, setLoadingModules]   = useState(false);
   const [error, setError]                     = useState('');
@@ -537,14 +547,17 @@ export default function Curriculum() {
                                     {/* Lessons under this day */}
                                     <div style={{ padding: '4px 20px 12px' }}>
                                       {dayData.lessons.map(lesson => {
-                                        const videoUrl      = lesson.lesson_type === 'video' ? lesson.video_url : null;
+                                        const embedUrl      = lesson.lesson_type === 'video' ? getYouTubeEmbedUrl(lesson.video_url) : null;
                                         const readingUrl    = lesson.lesson_type === 'reading' ? lesson.video_url : null;
+                                        const isVideoOpen   = openVideoId === lesson.id;
                                         return (
                                           <div key={lesson.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                                             <div
+                                              onClick={() => embedUrl && setOpenVideoId(isVideoOpen ? null : lesson.id)}
                                               style={{
                                                 display: 'flex', alignItems: 'flex-start', gap: '12px',
                                                 padding: '10px 0',
+                                                cursor: embedUrl ? 'pointer' : 'default',
                                               }}
                                             >
                                               <span style={{
@@ -562,21 +575,13 @@ export default function Curriculum() {
                                                   {lesson.title}
                                                   {lesson.author && <span style={{ fontWeight: 400, color: 'var(--text-secondary)', fontSize: '0.8rem' }}>— {lesson.author}{lesson.source ? `, ${lesson.source}` : ''}</span>}
                                                   {!lesson.author && lesson.source && <span style={{ fontWeight: 400, color: 'var(--text-secondary)', fontSize: '0.8rem' }}>— {lesson.source}</span>}
-                                                  {videoUrl && (
-                                                    <a
-                                                      href={videoUrl}
-                                                      target="_blank"
-                                                      rel="noopener noreferrer"
-                                                      style={{ fontSize: '0.7rem', color: '#3b82f6', marginLeft: 'auto', textDecoration: 'none', flexShrink: 0 }}
-                                                    >
-                                                      ▶ Watch
-                                                    </a>
-                                                  )}
+                                                  {embedUrl && <span style={{ fontSize: '0.7rem', color: '#3b82f6', marginLeft: 'auto' }}>{isVideoOpen ? '▲ Hide' : '▶ Watch'}</span>}
                                                   {readingUrl && (
                                                     <a
                                                       href={readingUrl}
                                                       target="_blank"
                                                       rel="noopener noreferrer"
+                                                      onClick={e => e.stopPropagation()}
                                                       style={{ fontSize: '0.7rem', color: '#a855f7', marginLeft: 'auto', textDecoration: 'none', flexShrink: 0 }}
                                                     >
                                                       📖 Read
@@ -588,6 +593,20 @@ export default function Curriculum() {
                                                 </div>
                                               </div>
                                             </div>
+                                            {isVideoOpen && embedUrl && (
+                                              <div style={{ paddingBottom: '12px' }}>
+                                                <div style={{ position: 'relative', paddingTop: '56.25%', borderRadius: '10px', overflow: 'hidden', background: '#000' }}>
+                                                  <iframe
+                                                    src={embedUrl}
+                                                    title={lesson.title}
+                                                    frameBorder="0"
+                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                    allowFullScreen
+                                                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+                                                  />
+                                                </div>
+                                              </div>
+                                            )}
                                           </div>
                                         );
                                       })}
