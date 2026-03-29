@@ -550,8 +550,9 @@ export default function Curriculum() {
                                     {/* Lessons under this day */}
                                     <div style={{ padding: '4px 20px 12px' }}>
                                       {dayData.lessons.map(lesson => {
-                                        const embedUrl    = lesson.lesson_type === 'video' ? getYouTubeEmbedUrl(lesson.video_url) : null;
-                                        const isVideoOpen = openVideoId === lesson.id;
+                                        const embedUrl      = lesson.lesson_type === 'video' ? getYouTubeEmbedUrl(lesson.video_url) : null;
+                                        const readingUrl    = lesson.lesson_type === 'reading' ? lesson.video_url : null;
+                                        const isVideoOpen   = openVideoId === lesson.id;
                                         return (
                                           <div key={lesson.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                                             <div
@@ -578,6 +579,17 @@ export default function Curriculum() {
                                                   {lesson.author && <span style={{ fontWeight: 400, color: 'var(--text-secondary)', fontSize: '0.8rem' }}>— {lesson.author}{lesson.source ? `, ${lesson.source}` : ''}</span>}
                                                   {!lesson.author && lesson.source && <span style={{ fontWeight: 400, color: 'var(--text-secondary)', fontSize: '0.8rem' }}>— {lesson.source}</span>}
                                                   {embedUrl && <span style={{ fontSize: '0.7rem', color: '#3b82f6', marginLeft: 'auto' }}>{isVideoOpen ? '▲ Hide' : '▶ Watch'}</span>}
+                                                  {readingUrl && (
+                                                    <a
+                                                      href={readingUrl}
+                                                      target="_blank"
+                                                      rel="noopener noreferrer"
+                                                      onClick={e => e.stopPropagation()}
+                                                      style={{ fontSize: '0.7rem', color: '#a855f7', marginLeft: 'auto', textDecoration: 'none', flexShrink: 0 }}
+                                                    >
+                                                      📖 Read
+                                                    </a>
+                                                  )}
                                                 </div>
                                                 <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                                                   {lesson.description || lesson.content}
