@@ -37,7 +37,7 @@ export default function ReadinessIndex() {
 
       <div className="glass-panel" style={{ padding: '40px', textAlign: 'center', border: '1px solid rgba(59,130,246,0.3)' }}>
         <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '16px' }}>Ready to calibrate your career?</h2>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '32px' }}>Takes ~10 minutes. Your results are private.</p>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '32px' }}>Takes ~25 minutes. Your results are private.</p>
         <button className="btn-primary" onClick={() => navigate('/app/readiness/questionnaire')} style={{ padding: '14px 36px', fontSize: '1.05rem', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
           Start Diagnostic <ArrowRight size={18} />
         </button>
