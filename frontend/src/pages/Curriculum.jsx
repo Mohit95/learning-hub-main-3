@@ -73,7 +73,7 @@ const REWARD_CONFIG = {
     actionHref:  'https://calendly.com/learninghub-senior-pm/15min',
     subtext:    'Bring your Phase 4 case write-ups. This session is your graduation moment.',
     closeLabel: 'Done →',
-    closeNav:   '/app/dashboard',
+    closeNav:   '/app/interview-prep',
     calendlyUrl: null,
   },
 };
@@ -108,21 +108,23 @@ function RewardModal({ phaseKey, onClose }) {
       <div style={{
         position: 'fixed', inset: 0, zIndex: 50,
         background: 'rgba(0,0,0,0.65)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '20px',
       }}>
         <div style={{
+          position: 'fixed',
+          top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 51,
           background: '#1a1f36',
           borderRadius: '20px',
           padding: '36px 32px 28px',
           maxWidth: '520px',
-          width: '100%',
+          width: 'calc(100% - 40px)',
           boxShadow: '0 30px 60px rgba(0,0,0,0.6)',
           border: '1px solid rgba(255,255,255,0.08)',
           animation: 'rewardModalIn 220ms ease-out forwards',
           maxHeight: '90vh',
           overflowY: 'auto',
-          position: 'relative',
+          position: 'fixed',
         }}>
 
           {/* X close button — Phase 2 Calendly modal only */}
