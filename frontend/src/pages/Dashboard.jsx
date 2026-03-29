@@ -61,6 +61,17 @@ export default function Dashboard() {
   const roadmapSteps = roadmap?.roadmap_steps || [];
   const nextSession  = sessions[0];
 
+  // Demo fallback data shown when the user has no real data yet
+  const DEMO_LESSONS = 4;
+  const DEMO_ROADMAP = [
+    { id: 'd1', title: 'Phase 1 — Foundation', status: 'in_progress' },
+    { id: 'd2', title: 'Phase 2 — Craft',      status: 'pending' },
+    { id: 'd3', title: 'Phase 3 — Domain Depth', status: 'pending' },
+  ];
+  const isEmpty = completedLessons === 0 && roadmapSteps.length === 0 && sessions.length === 0;
+  const displayLessons   = isEmpty ? DEMO_LESSONS   : completedLessons;
+  const displayRoadmap   = isEmpty ? DEMO_ROADMAP   : roadmapSteps;
+
   return (
     <div className="page animate-fade-in" style={{ opacity: 1 }}>
 
@@ -101,7 +112,7 @@ export default function Dashboard() {
                   <CheckCircle size={22} />
                 </div>
                 <div>
-                  <div style={{ fontSize: '1.75rem', fontWeight: 700 }}>{completedLessons}</div>
+                  <div style={{ fontSize: '1.75rem', fontWeight: 700 }}>{displayLessons}</div>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Completed Lessons</div>
                 </div>
               </div>
@@ -131,23 +142,14 @@ export default function Dashboard() {
                     View all <ArrowRight size={14} />
                   </Link>
                 </div>
-                {roadmapSteps.length === 0 ? (
-                  <div className="glass-panel" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', opacity: 1, transform: 'none' }}>
-                    <p style={{ marginBottom: '8px' }}>No roadmap yet.</p>
-                    <Link to="/app/assessments" style={{ color: 'var(--accent-electric)', textDecoration: 'none', fontWeight: 600, fontSize: '0.875rem' }}>
-                      Take an assessment →
-                    </Link>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {roadmapSteps.slice(0, 3).map(step => (
-                      <div key={step.id} className="glass-panel" style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: 1, transform: 'none' }}>
-                        <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{step.title}</span>
-                        <span className={`badge ${STATUS_COLORS[step.status] || 'badge-gray'}`}>{step.status}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {displayRoadmap.slice(0, 3).map(step => (
+                    <div key={step.id} className="glass-panel" style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: 1, transform: 'none' }}>
+                      <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{step.title}</span>
+                      <span className={`badge ${STATUS_COLORS[step.status] || 'badge-gray'}`}>{step.status}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* Upcoming session */}
@@ -166,8 +168,8 @@ export default function Dashboard() {
                 ) : (
                   <div className="glass-panel" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', opacity: 1, transform: 'none' }}>
                     <p style={{ marginBottom: '8px' }}>No upcoming sessions.</p>
-                    <Link to="/app/mentors" style={{ color: 'var(--accent-electric)', textDecoration: 'none', fontWeight: 600, fontSize: '0.875rem' }}>
-                      Book a mentor →
+                    <Link to="/app/curriculum" style={{ color: 'var(--accent-electric)', textDecoration: 'none', fontWeight: 600, fontSize: '0.875rem' }}>
+                      Continue learning →
                     </Link>
                   </div>
                 )}
