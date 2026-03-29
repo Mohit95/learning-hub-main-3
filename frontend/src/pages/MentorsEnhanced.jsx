@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { mentorsData } from '../data/placeholders';
-import { Users, X, Calendar } from 'lucide-react';
+import { Users, X, Calendar, Lock } from 'lucide-react';
 import './EnhancedStyles.css';
 
 function BookingModal({ mentor, userName, onClose }) {
@@ -85,7 +85,34 @@ export default function MentorsEnhanced() {
   const [bookingMentor, setBookingMentor] = useState(null);
 
   return (
-    <div className="page animate-fade-in">
+    <div style={{ position: 'relative' }}>
+      {/* Coming Soon overlay */}
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 40,
+        backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+        background: 'rgba(10, 10, 20, 0.75)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Lock size={48} style={{ color: '#c084fc', marginBottom: '16px' }} />
+        <h2 style={{ fontSize: '1.875rem', fontWeight: 700, color: '#fff', marginBottom: '12px' }}>
+          Coming Soon
+        </h2>
+        <p style={{
+          fontSize: '0.875rem', color: '#9ca3af', textAlign: 'center',
+          maxWidth: '360px', lineHeight: 1.6, marginBottom: '20px',
+        }}>
+          1-on-1 mentor sessions are being set up. You'll be notified when booking goes live.
+        </p>
+        <span style={{
+          background: 'rgba(88, 28, 135, 0.5)', color: '#d8b4fe',
+          fontSize: '0.75rem', padding: '4px 12px', borderRadius: '9999px',
+          border: '1px solid #7e22ce',
+        }}>
+          Launching April 2026
+        </span>
+      </div>
+
+      <div className="page animate-fade-in">
       <h1 className="page-title">Mentors</h1>
       <p style={{ color: 'var(--text-secondary)', marginBottom: '32px' }}>
         Book 1-on-1 sessions with experienced Product Managers.
@@ -139,6 +166,7 @@ export default function MentorsEnhanced() {
           onClose={() => setBookingMentor(null)}
         />
       )}
+      </div>
     </div>
   );
 }
