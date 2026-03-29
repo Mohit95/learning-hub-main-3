@@ -12,7 +12,7 @@ const STATUS_COLORS = {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { user, profile } = useAuthStore();
+  const { user, profile, initialized } = useAuthStore();
   const [completedLessons, setCompletedLessons] = useState(0);
   const [roadmap, setRoadmap] = useState(null);
   const [sessions, setSessions] = useState([]);
@@ -28,7 +28,8 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    if (!user) return;
+    if (!initialized) return;
+    if (!user) { setLoading(false); return; }
     const load = async () => {
       setLoading(true);
       try {
@@ -47,7 +48,7 @@ export default function Dashboard() {
       }
     };
     load();
-  }, [user]);
+  }, [user, initialized]);
 
   if (loading) {
     return (
