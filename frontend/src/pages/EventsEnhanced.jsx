@@ -5,13 +5,27 @@ import './EnhancedStyles.css';
 
 export default function EventsEnhanced() {
   const [registered, setRegistered] = useState(new Set());
+  const [toast, setToast] = useState(false);
 
   const handleRegister = (id) => {
     setRegistered(prev => new Set([...prev, id]));
+    setToast(true);
+    setTimeout(() => setToast(false), 3000);
   };
 
   return (
     <div className="page animate-fade-in">
+      {toast && (
+        <div style={{
+          position: 'fixed', top: '24px', left: '50%', transform: 'translateX(-50%)',
+          zIndex: 50, background: '#1a1f36', borderLeft: '4px solid #4ade80',
+          color: '#fff', padding: '12px 20px', borderRadius: '10px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)', fontSize: '0.9rem', fontWeight: 500,
+          whiteSpace: 'nowrap', animation: 'fadeInDown 0.2s ease',
+        }}>
+          Done! Event details have been sent to your registered email address.
+        </div>
+      )}
       <h1 className="page-title">Events</h1>
       <p style={{ color: 'var(--text-secondary)', marginBottom: '32px' }}>
         Live webinars, workshops, and PM community events.

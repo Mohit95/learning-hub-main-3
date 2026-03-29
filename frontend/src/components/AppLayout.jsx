@@ -1,4 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import {
   LayoutDashboard, BookOpen, ClipboardList, BarChart2,
   Users, Calendar, CalendarDays, FileText, Settings, LogOut, Shield,
@@ -11,7 +12,6 @@ const NAV_LINKS = [
   { to: '/app/assessments', icon: ClipboardList, label: 'Assessments' },
   { to: '/app/gap-analysis', icon: BarChart2, label: 'Gap Analysis' },
   { to: '/app/curriculum', icon: GraduationCap, label: 'Curriculum Roadmap' },
-  { to: '/app/schedule', icon: CalendarDays, label: 'My Schedule' },
   { to: '/app/interview-prep', icon: MessageSquare, label: 'Interview Prep' },
   { to: '/app/mentors', icon: Users, label: 'Mentors' },
   { to: '/app/events', icon: Calendar, label: 'Events' },
@@ -25,10 +25,20 @@ const ADMIN_LINKS = [
 export default function AppLayout() {
   const { profile, logout } = useAuthStore();
   const navigate = useNavigate();
+  const [interviewToast, setInterviewToast] = useState(false);
+  const phase4Complete = localStorage.getItem('phase4Complete') === 'true';
 
   const handleLogout = async () => {
     await logout();
     navigate('/signin');
+  };
+
+  const handleInterviewPrepClick = (e) => {
+    if (!phase4Complete) {
+      e.preventDefault();
+      setInterviewToast(true);
+      setTimeout(() => setInterviewToast(false), 3000);
+    }
   };
 
   const linkStyle = (isActive) => ({
@@ -61,13 +71,37 @@ export default function AppLayout() {
         </div>
 
         {/* Nav links */}
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
-          {NAV_LINKS.map(({ to, icon: Icon, label }) => (
-            <NavLink key={to} to={to} className="sidebar-nav-item" style={({ isActive }) => linkStyle(isActive)}>
-              <Icon size={18} />
-              <span className="nav-label">{label}</span>
-            </NavLink>
-          ))}
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, position: 'relative' }}>
+          {interviewToast && (
+            <div style={{
+              position: 'fixed', top: '24px', left: '50%', transform: 'translateX(-50%)',
+              zIndex: 50, background: '#1a1f36', borderLeft: '4px solid #f59e0b',
+              color: '#fff', padding: '12px 20px', borderRadius: '10px',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.4)', fontSize: '0.9rem', fontWeight: 500,
+              whiteSpace: 'nowrap', animation: 'fadeInDown 0.2s ease',
+            }}>
+              Complete Phase 4 to unlock Interview Prep
+            </div>
+          )}
+          {NAV_LINKS.map(({ to, icon: Icon, label }) => {
+            const isInterviewPrep = to === '/app/interview-prep';
+            const locked = isInterviewPrep && !phase4Complete;
+            return (
+              <NavLink
+                key={to}
+                to={to}
+                className="sidebar-nav-item"
+                style={({ isActive }) => ({
+                  ...linkStyle(isActive),
+                  ...(locked ? { opacity: 0.4, cursor: 'not-allowed' } : {}),
+                })}
+                onClick={isInterviewPrep ? handleInterviewPrepClick : undefined}
+              >
+                <Icon size={18} />
+                <span className="nav-label">{label}</span>
+              </NavLink>
+            );
+          })}
 
           {profile?.role === 'admin' && (
             <>

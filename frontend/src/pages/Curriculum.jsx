@@ -95,6 +95,9 @@ function RewardModal({ phaseKey, onClose }) {
   if (!cfg) return null;
 
   const handleClose = () => {
+    if (phaseKey === 'phase4') {
+      localStorage.setItem('phase4Complete', 'true');
+    }
     onClose();
     if (cfg.closeNav) navigate(cfg.closeNav);
   };
@@ -119,7 +122,26 @@ function RewardModal({ phaseKey, onClose }) {
           animation: 'rewardModalIn 220ms ease-out forwards',
           maxHeight: '90vh',
           overflowY: 'auto',
+          position: 'relative',
         }}>
+
+          {/* X close button — Phase 2 Calendly modal only */}
+          {phaseKey === 'phase2' && (
+            <button
+              onClick={handleClose}
+              style={{
+                position: 'absolute', top: '12px', right: '12px',
+                width: '32px', height: '32px', borderRadius: '50%',
+                background: '#374151', border: 'none', color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '1.1rem', cursor: 'pointer', transition: 'background 0.2s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = '#4b5563'}
+              onMouseLeave={e => e.currentTarget.style.background = '#374151'}
+            >
+              ×
+            </button>
+          )}
 
           {/* Animated checkmark */}
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>

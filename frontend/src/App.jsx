@@ -172,7 +172,6 @@ export default function App() {
             <Route path="gap-analysis" element={<GapAnalysis />} />
             <Route path="roadmap" element={<Roadmap />} />
             <Route path="curriculum" element={<Curriculum />} />
-            <Route path="schedule" element={<Schedule />} />
             <Route path="mentors" element={<MentorsEnhanced />} />
             <Route path="events" element={<EventsEnhanced />} />
             <Route path="blog" element={<BlogEnhanced />} />

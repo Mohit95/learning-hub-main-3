@@ -14,6 +14,11 @@ export default function Index() {
   const [selectedType, setSelectedType] = useState('');
   const [error, setError] = useState('');
 
+  if (localStorage.getItem('phase4Complete') !== 'true') {
+    navigate('/app/curriculum', { replace: true });
+    return null;
+  }
+
   const handleStartSession = () => {
     if (!selectedType) {
       setError('Please select an interview type to continue.');
