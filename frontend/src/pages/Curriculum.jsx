@@ -84,8 +84,8 @@ const MODAL_STYLES = `
   to   { stroke-dashoffset: 0; }
 }
 @keyframes rewardModalIn {
-  from { transform: scale(0.9); opacity: 0; }
-  to   { transform: scale(1);   opacity: 1; }
+  from { transform: translate(-50%, -50%) scale(0.9); opacity: 0; }
+  to   { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
 }
 `;
 
