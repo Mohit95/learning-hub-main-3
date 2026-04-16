@@ -4,17 +4,9 @@ Welcome to the **PM/Mentor Learning Management System** project! This guide will
 
 ---
 
-## 🚀 1. Clone the Codebase
-First, grab the latest code from GitHub and move into the project folder.
-
-```bash
-git clone https://github.com/ankitaingalagi/learning-hub.git
-cd learning-hub
-```
-
 ---
 
-## 🗄️ 2. Supabase (Database Setup)
+## 🗄️ 1. Supabase (Database Setup)
 We use Supabase for our PostgreSQL database, Auth, and Storage.
 
 **Option A: Link to the Cloud Database (Quickest for frontend/backend work)**
